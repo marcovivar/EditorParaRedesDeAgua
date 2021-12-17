@@ -1,0 +1,872 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.ExtCtrls, Vcl.StdCtrls, Math,
+  Vcl.ExtDlgs;
+
+type
+  TForm1 = class(TForm)
+    ScrollBox1: TScrollBox;
+    Image1: TImage;
+    Panel1: TPanel;
+    Panel2: TPanel;
+    Button1: TButton;
+    Button2: TButton;
+    Button3: TButton;
+    Button4: TButton;
+    Button5: TButton;
+    Button6: TButton;
+    Button7: TButton;
+    Button8: TButton;
+    Edit1: TEdit;
+    Label1: TLabel;
+    Button9: TButton;
+    Button10: TButton;
+    Button11: TButton;
+    Button12: TButton;
+    Button13: TButton;
+    Button14: TButton;
+    Button15: TButton;
+    Label2: TLabel;
+    OpenTextFileDialog1: TOpenTextFileDialog;
+    SaveTextFileDialog1: TSaveTextFileDialog;
+    procedure FormCreate(Sender: TObject);
+    procedure Button15Click(Sender: TObject);
+    procedure Button14Click(Sender: TObject);
+    procedure Image1MouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure Image1MouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Button4Click(Sender: TObject);
+    procedure Button12Click(Sender: TObject);
+    procedure Button3Click(Sender: TObject);
+    procedure Button5Click(Sender: TObject);
+    procedure Button6Click(Sender: TObject);
+    procedure Button7Click(Sender: TObject);
+    procedure Button8Click(Sender: TObject);
+    procedure Button11Click(Sender: TObject);
+    procedure Button13Click(Sender: TObject);
+    procedure Button10Click(Sender: TObject);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+  //es lo mismo que una struct en C
+  type tLinea = packed record
+    x1 : Integer;
+    y1 : Integer;
+    x2 : Integer;
+    y2 : Integer;
+  end;
+
+  type tImagen = packed record
+    x1 : Integer;
+    y1 : Integer;
+    angulo : Integer;
+  end;
+
+
+var
+  Form1: TForm1;
+  //arreglos de estructuras
+  tubo : array[1..50] of tLinea;
+  manguera : array[1..50] of tLinea;
+  casa : array[1..50] of tImagen;
+  edificio : array[1..50] of tImagen;
+  distribuidorA : array[1..50] of tImagen;
+  bombaA : array[1..50] of tImagen;
+  medidorA : array[1..50] of tImagen;
+  llaveA : array[1..50] of tImagen;
+  //contadores de mis objetos
+  nTubo : Integer;
+  nManguera : Integer;
+  nCasa : Integer;
+  nEdificio : Integer;
+  nDistribuidor : Integer;
+  nBomba : Integer;
+  nMedidor : Integer;
+  nLlave : Integer;
+
+  x1,y1,x2,y2 : Integer;
+  bomba : Tbitmap;
+  distribuidor : Tbitmap;
+  llave : Tbitmap;
+  medidor : Tbitmap;
+  casa0 : Tbitmap;
+  casa90 : Tbitmap;
+  casa180 : Tbitmap;
+  casa270 : Tbitmap;
+  edificio0 : Tbitmap;
+  edificio90 : Tbitmap;
+  edificio180 : Tbitmap;
+  edificio270 : Tbitmap;
+
+const
+  //precio de objetos
+  pTubo : Integer=60;  //precio por unidad,por recuadro
+  pManguera : Integer=8;  //precio por unidad, por recuadro
+  pDistribuidor : Integer=465;
+  pBomba : Integer=3066;
+  pMedidor : Integer=870;
+  pLlave : Integer=158;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.Button10Click(Sender: TObject);
+var fp:textFile;
+  i: Integer;
+begin
+  if saveTextFileDialog1.Execute() then
+    begin
+      assignFile(fp, saveTextFileDialog1.FileName);
+      rewrite(fp);  //escritura
+
+      writeLn(fp,nTubo);
+      writeLn(fp,nManguera);
+      writeLn(fp,nCasa);
+      writeLn(fp,nEdificio);
+      writeLn(fp,nDistribuidor);
+      writeLn(fp,nBomba);
+      writeLn(fp,nMedidor);
+      writeLn(fp,nLlave);
+
+      for i := 1 to nCasa do
+        begin
+          writeLn(fp,casa[i].x1, ' ', casa[i].y1, ' ', casa[i].angulo);
+        end;
+      for i := 1 to nEdificio do
+        begin
+          writeLn(fp,edificio[i].x1, ' ', edificio[i].y1, ' ', edificio[i].angulo);
+        end;
+      for i := 1 to nDistribuidor do
+        begin
+          writeLn(fp,distribuidorA[i].x1, ' ', distribuidorA[i].y1);
+        end;
+      for i := 1 to nBomba do
+        begin
+          writeLn(fp,bombaA[i].x1, ' ', bombaA[i].y1);
+        end;
+      for i := 1 to nMedidor do
+        begin
+          writeLn(fp,medidorA[i].x1, ' ', medidorA[i].y1);
+        end;
+
+      closeFile(fp);
+    end;
+
+end;
+
+procedure TForm1.Button11Click(Sender: TObject);
+var i, bandera : Integer;
+  j: Integer;
+begin
+  //ya no buscara en los otros arreglos de objetos si bancdera es 1
+  bandera:=0;
+  //se  buscara en las imagenes si (mousdown(x,y) = mouseup(x,y))
+  if (x1=x2) and (y1=y2) then
+    begin
+      for i := 1 to nCasa do
+        begin
+          if (casa[i].x1=x1) and (casa[i].y1=y1) then
+            begin
+              for j := i to (nCasa-1) do
+                begin
+                  casa[j]:=casa[j+1];
+                end;
+              bandera:=1;
+              nCasa:=nCasa-1;
+              break
+            end;
+
+        end;
+      //si nuestra bandera sigue en 0, no se ha encontrado el objeto y continua buscando
+      if bandera=0 then
+        begin
+          for i := 1 to nEdificio do
+            begin
+              if (edificio[i].x1=x1) and (edificio[i].y1=y1) then
+                begin
+                  for j := i to (nEdificio-1) do
+                    begin
+                      edificio[j]:=edificio[j+1];
+                    end;
+                  bandera:=1;
+                  nEdificio:=nEdificio-1;
+                  break
+                end;
+
+            end;
+        end;
+      //si nuestra bandera sigue en 0, no se ha encontrado el objeto y continua buscando
+      if bandera=0 then
+        begin
+          for i := 1 to nDistribuidor do
+            begin
+              if (distribuidorA[i].x1=x1) and (distribuidorA[i].y1=y1) then
+                begin
+                  for j := i to (nDistribuidor-1) do
+                    begin
+                      distribuidorA[j]:=distribuidorA[j+1];
+                    end;
+                  bandera:=1;
+                  nDistribuidor:=nDistribuidor-1;
+                  break
+                end;
+
+            end;
+        end;
+      //si nuestra bandera sigue en 0, no se ha encontrado el objeto y continua buscando
+      if bandera=0 then
+        begin
+          for i := 1 to nBomba do
+            begin
+              if (bombaA[i].x1=x1) and (bombaA[i].y1=y1) then
+                begin
+                  for j := i to (nBomba-1) do
+                    begin
+                      bombaA[j]:=bombaA[j+1];
+                    end;
+                  bandera:=1;
+                  nBomba:=nBomba-1;
+                  break
+                end;
+
+            end;
+        end;
+      //si nuestra bandera sigue en 0, no se ha encontrado el objeto y continua buscando
+      if bandera=0 then
+        begin
+          for i := 1 to nMedidor do
+            begin
+              if (medidorA[i].x1=x1) and (medidorA[i].y1=y1) then
+                begin
+                  for j := i to (nMedidor-1) do
+                    begin
+                      medidorA[j]:=medidorA[j+1];
+                    end;
+                  bandera:=1;
+                  nMedidor:=nMedidor-1;
+                  break
+                end;
+
+            end;
+        end;
+      //si nuestra bandera sigue en 0, no se ha encontrado el objeto y continua buscando
+      if bandera=0 then
+        begin
+          for i := 1 to nLlave do
+            begin
+              if (llaveA[i].x1=x1) and (llaveA[i].y1=y1) then
+                begin
+                  for j := i to (nLlave-1) do
+                    begin
+                      llaveA[j]:=llaveA[j+1];
+                    end;
+                  bandera:=1;
+                  nLlave:=nLlave-1;
+                  break
+                end;
+
+            end;
+        end;
+
+    end
+  else       //se buscara en las lineas, ya que sabemos que el usuario no dio un solo click
+    begin
+      for i := 1 to nTubo do
+        begin
+          if (tubo[i].x1=x1) and (tubo[i].y1=y1) and (tubo[i].x2=x2) and (tubo[i].y2=y2) then
+            begin
+              for j := i to (nTubo-1) do
+                begin
+                  tubo[j]:=tubo[j+1];
+                end;
+              bandera:=1;
+              nTubo:=nTubo-1;
+              break
+            end;
+        end;
+      //si nuestra bandera sigue en 0, no se ha encontrado el objeto y continua buscando
+      if bandera=0 then
+        begin
+          for i := 1 to nManguera do
+            begin
+              if (manguera[i].x1=x1) and (manguera[i].y1=y1) and (manguera[i].x2=x2) and (manguera[i].y2=y2) then
+                begin
+                  for j := i to (nManguera-1) do
+                    begin
+                      manguera[j]:=manguera[j+1];
+                    end;
+                  bandera:=1;
+                  nManguera:=nManguera-1;
+                  break
+                end;
+            end;
+        end;
+    end;
+
+
+  //se pintara todo de nuevo, pero sin el objeto eliminado
+
+  //*************************************************** se muestra la malla
+  image1.Canvas.Rectangle(0,0,2000,2000);
+  //generamos la malla de referencia de 20 pixeles
+  Image1.Canvas.pen.Color:= RGB(147,212,255);
+  for i := 1 to 100 do
+    begin
+      Image1.Canvas.MoveTo(0,i*20);
+      Image1.Canvas.LineTo(2000,i*20);
+
+      Image1.Canvas.MoveTo(i*20,0);
+      Image1.Canvas.LineTo(i*20,2000);
+    end;
+
+  //pintamos los ejes principales X y Y
+  Image1.Canvas.Pen.Width:= 7;
+  Image1.Canvas.pen.Color := clRed;
+  Image1.Canvas.MoveTo(0,0);
+  Image1.Canvas.LineTo(2000,0);
+  Image1.Canvas.pen.Color := clLime;
+  Image1.Canvas.MoveTo(0,0);
+  Image1.Canvas.LineTo(0,2000);
+  //restauramos el color y ancho de las lineas
+  Image1.Canvas.Pen.Width:= 1;
+  Image1.Canvas.pen.Color := clBlack;
+  //mostramos un letrero de X y Y
+  image1.Canvas.TextOut(23,4,'X');
+  image1.Canvas.TextOut(7,22,'Y');
+  //***************************************************
+
+  //se muestran los objetos guardados en los arreglos
+  for i := 1 to nCasa do
+    begin
+
+      if casa[i].angulo=0 then
+        begin
+          casa0:=tBitmap.Create;
+          casa0.LoadFromFile('casa0.bmp');
+          image1.Canvas.Draw(casa[i].x1-40,casa[i].y1-40,casa0);
+        end
+      else if casa[i].angulo=90 then
+        begin
+          casa90:=tBitmap.Create;
+          casa90.LoadFromFile('casa90.bmp');
+          image1.Canvas.Draw(casa[i].x1-40,casa[i].y1-40,casa90);
+        end
+      else if casa[i].angulo=180 then
+        begin
+          casa180:=tBitmap.Create;
+          casa180.LoadFromFile('casa180.bmp');
+          image1.Canvas.Draw(casa[i].x1-40,casa[i].y1-40,casa180);
+        end
+      else if casa[i].angulo=270 then
+        begin
+          casa270:=tBitmap.Create;
+          casa270.LoadFromFile('casa270.bmp');
+          image1.Canvas.Draw(casa[i].x1-40,casa[i].y1-40,casa270);
+        end;
+    end;
+
+  for i := 1 to nEdificio do
+    begin
+
+      if edificio[i].angulo=0 then
+        begin
+          edificio0:=tBitmap.Create;
+          edificio0.LoadFromFile('edificio0.bmp');
+          image1.Canvas.Draw(edificio[i].x1-40,edificio[i].y1-40,edificio0);
+        end
+      else if edificio[i].angulo=90 then
+        begin
+          edificio90:=tBitmap.Create;
+          edificio90.LoadFromFile('edificio90.bmp');
+          image1.Canvas.Draw(edificio[i].x1-40,edificio[i].y1-40,edificio90);
+        end
+      else if edificio[i].angulo=180 then
+        begin
+          edificio180:=tBitmap.Create;
+          edificio180.LoadFromFile('edificio180.bmp');
+          image1.Canvas.Draw(edificio[i].x1-40,edificio[i].y1-40,edificio180);
+        end
+      else if edificio[i].angulo=270 then
+        begin
+          edificio270:=tBitmap.Create;
+          edificio270.LoadFromFile('edificio270.bmp');
+          image1.Canvas.Draw(edificio[i].x1-40,edificio[i].y1-40,edificio270);
+        end;
+    end;
+
+  for i := 1 to nDistribuidor do
+    begin
+      distribuidor:=tBitmap.Create;
+      distribuidor.LoadFromFile('distribuidor.bmp');
+      image1.Canvas.Draw(distribuidorA[i].x1-40,distribuidorA[i].y1-40,distribuidor);
+    end;
+  for i := 1 to nBomba do
+    begin
+      bomba:=tBitmap.Create;
+      bomba.LoadFromFile('bomba.bmp');
+      image1.Canvas.Draw(bombaA[i].x1-40,bombaA[i].y1-40,bomba);
+    end;
+  for i := 1 to nMedidor do
+    begin
+      medidor:=tBitmap.Create;
+      medidor.LoadFromFile('medidor.bmp');
+      image1.Canvas.Draw(medidorA[i].x1-40,medidorA[i].y1-40,medidor);
+    end;
+  for i := 1 to nLlave do
+    begin
+      llave:=tBitmap.Create;
+      llave.LoadFromFile('llave.bmp');
+      image1.Canvas.Draw(llaveA[i].x1-40,llaveA[i].y1-40,llave);
+    end;
+
+  for i := 1 to nTubo do
+    begin
+      Image1.Canvas.Pen.Width:= 6;
+      Image1.Canvas.pen.Color := RGB(205,127,50);
+      image1.Canvas.MoveTo(tubo[i].x1,tubo[i].y1);
+      image1.Canvas.LineTo(tubo[i].x2,tubo[i].y2);
+      //restauramos los parametros de linea
+      Image1.Canvas.Pen.Width:= 1;
+      Image1.Canvas.pen.Color := clBlack;
+    end;
+  for i := 1 to nManguera do
+    begin
+      Image1.Canvas.Pen.Width:= 4;
+      Image1.Canvas.pen.Color := clBlack;
+      image1.Canvas.MoveTo(manguera[i].x1,manguera[i].y1);
+      image1.Canvas.LineTo(manguera[i].x2,manguera[i].y2);
+      //restauramos los parametros de linea
+      Image1.Canvas.Pen.Width:= 1;
+      Image1.Canvas.pen.Color := clBlack;
+    end;
+
+end;
+
+procedure TForm1.Button12Click(Sender: TObject);
+var
+  i: Integer;
+begin
+
+  //***************************************************
+  image1.Canvas.Rectangle(0,0,2000,2000);
+  //generamos la malla de referencia de 20 pixeles
+  Image1.Canvas.pen.Color:= RGB(147,212,255);
+  for i := 1 to 100 do
+    begin
+      Image1.Canvas.MoveTo(0,i*20);
+      Image1.Canvas.LineTo(2000,i*20);
+
+      Image1.Canvas.MoveTo(i*20,0);
+      Image1.Canvas.LineTo(i*20,2000);
+    end;
+
+  //pintamos los ejes principales X y Y
+  Image1.Canvas.Pen.Width:= 7;
+  Image1.Canvas.pen.Color := clRed;
+  Image1.Canvas.MoveTo(0,0);
+  Image1.Canvas.LineTo(2000,0);
+  Image1.Canvas.pen.Color := clLime;
+  Image1.Canvas.MoveTo(0,0);
+  Image1.Canvas.LineTo(0,2000);
+  //restauramos el color y ancho de las lineas
+  Image1.Canvas.Pen.Width:= 1;
+  Image1.Canvas.pen.Color := clBlack;
+  //mostramos un letrero de X y Y
+  image1.Canvas.TextOut(23,4,'X');
+  image1.Canvas.TextOut(7,22,'Y');
+  //***************************************************
+  //inicializamos los contadores de los objetos
+  nTubo:=0;
+  nManguera:=0;
+  nCasa:=0;
+  nEdificio:=0;
+  nDistribuidor:=0;
+  nBomba:=0;
+  nMedidor:=0;
+  nLlave:=0;
+end;
+
+procedure TForm1.Button13Click(Sender: TObject);
+var
+cotizacion : Integer;
+//variables para alojar las unidades(recuadros) total de instalacion
+contaUnidades:Real;
+uTubo:Integer;
+uManguera:Integer;
+i:Integer;
+begin
+  uTubo:=0;
+  //uManguera:=0;
+//se calcula la distanacia entre los puntos de cada tubo para sumarlos...
+//...asi tener las unidades totales en el plano
+  for i := 1 to nTubo do
+    begin
+      contaUnidades:=sqrt(power((tubo[i].x2-tubo[i].x1),2)+power((tubo[i].y2-tubo[i].y1),2));
+      contaUnidades:=contaUnidades/20;
+      uTubo:= round(uTubo+contaUnidades);
+    end;
+
+  for i := 1 to nManguera do
+    begin
+      contaUnidades:=sqrt(power((manguera[i].x2-manguera[i].x1),2)+power((manguera[i].y2-manguera[i].y1),2));
+      contaUnidades:=contaUnidades/20;
+      uManguera:= round(uManguera+contaUnidades);
+    end;
+
+  cotizacion:=(uTubo*pTubo)+(uManguera*pManguera)+(nDistribuidor*pDistribuidor)+
+  (nBomba*pBomba)+(nMedidor*pMedidor)+(nLlave*pLlave);
+
+  showmessage('Precio'+'                                '+'cantidad'+#13#10+#13#10
+              +'Tubo: $'+intToStr(pTubo)+'                            '+intToStr(uTubo)+'m'+#13#10+
+              'Manguera: $'+intToStr(pManguera)+'                     '+intToStr(uManguera)+'m'+#13#10+
+              'Distribuidor: $'+intToStr(pDistribuidor)+'              '+intToStr(nDistribuidor)+#13#10+
+              'Bomba: $'+intToStr(pBomba)+'                    '+intToStr(nBomba)+#13#10+
+              'Medidor: $'+intToStr(pMedidor)+'                    '+intToStr(nMedidor)+#13#10+
+              'Llave: $'+intToStr(pLlave)+'                          '+intToStr(nLlave)+#13#10#13#10+
+              'TOTAL A PAGAR: $'+intToStr(cotizacion));
+end;
+
+procedure TForm1.Button14Click(Sender: TObject);
+begin
+  //salto de linea con sLineBreak
+  showmessage('Marco Antonio Vivar Olvera'+sLineBreak+'marco.vivaro@alumno.buap.mx'
+              +sLineBreak+'FCC'+sLineBreak+'BUAP');
+end;
+
+procedure TForm1.Button15Click(Sender: TObject);
+begin
+  close();
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  Image1.Canvas.Pen.Width:= 6;
+  Image1.Canvas.pen.Color := RGB(205,127,50);
+  image1.Canvas.MoveTo(x1,y1);
+  image1.Canvas.LineTo(x2,y2);
+  //restauramos los parametros de linea
+  Image1.Canvas.Pen.Width:= 1;
+  Image1.Canvas.pen.Color := clBlack;
+
+  nTubo:=nTubo+1;
+  //guardamos en el arreglo
+  tubo[nTubo].x1:=x1;
+  tubo[nTubo].y1:=y1;
+  tubo[nTubo].x2:=x2;
+  tubo[nTubo].y2:=y2;
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+begin
+
+  Image1.Canvas.Pen.Width:= 4;
+  Image1.Canvas.pen.Color := clBlack;
+  image1.Canvas.MoveTo(x1,y1);
+  image1.Canvas.LineTo(x2,y2);
+  //restauramos los parametros de linea
+  Image1.Canvas.Pen.Width:= 1;
+  Image1.Canvas.pen.Color := clBlack;
+
+  nManguera:=nManguera+1;
+  //guardamos en el arreglo
+  manguera[nManguera].x1:=x1;
+  manguera[nManguera].y1:=y1;
+  manguera[nManguera].x2:=x2;
+  manguera[nManguera].y2:=y2;
+
+end;
+
+procedure TForm1.Button3Click(Sender: TObject);
+begin
+  distribuidor:=tBitmap.Create;
+  distribuidor.LoadFromFile('distribuidor.bmp');
+  image1.Canvas.Draw(x1-40,y1-40,distribuidor);
+
+  nDistribuidor:=nDistribuidor+1;
+  //guardamos en el arreglo
+  distribuidorA[nDistribuidor].x1:=x1;
+  distribuidorA[nDistribuidor].y1:=y1;
+  //en los archivos vamos a identificar a los distribuidores con el termino 1
+  distribuidorA[nDistribuidor].angulo:=strToInt(edit1.Text);
+
+end;
+
+procedure TForm1.Button4Click(Sender: TObject);
+begin
+  if (edit1.Text='0') or (edit1.Text='90') or (edit1.Text='180') or (edit1.Text='270') then
+    begin
+      if edit1.Text='0' then
+        begin
+          casa0:=tBitmap.Create;
+          casa0.LoadFromFile('casa0.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,casa0);
+        end
+      else if edit1.Text='90' then
+        begin
+          casa90:=tBitmap.Create;
+          casa90.LoadFromFile('casa90.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,casa90);
+        end
+      else if edit1.Text='180' then
+        begin
+          casa180:=tBitmap.Create;
+          casa180.LoadFromFile('casa180.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,casa180);
+        end
+      else
+        begin
+          casa270:=tBitmap.Create;
+          casa270.LoadFromFile('casa270.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,casa270);
+        end;
+
+      nCasa:=nCasa+1;
+      //guardamos en el arreglo
+      casa[nCasa].x1:=x1;
+      casa[nCasa].y1:=y1;
+      casa[nCasa].angulo:=strToInt(edit1.Text);
+
+    end
+  else
+    begin
+      showmessage('Ingresa un valor correcto');
+    end;
+
+
+end;
+
+procedure TForm1.Button5Click(Sender: TObject);
+begin
+  if (edit1.Text='0') or (edit1.Text='90') or (edit1.Text='180') or (edit1.Text='270') then
+    begin
+
+      if edit1.Text='0' then
+        begin
+          edificio0:=tBitmap.Create;
+          edificio0.LoadFromFile('edificio0.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,edificio0);
+        end
+      else if edit1.Text='90' then
+        begin
+          edificio90:=tBitmap.Create;
+          edificio90.LoadFromFile('edificio90.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,edificio90);
+        end
+      else if edit1.Text='180' then
+        begin
+          edificio180:=tBitmap.Create;
+          edificio180.LoadFromFile('edificio180.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,edificio180);
+        end
+      else
+        begin
+          edificio270:=tBitmap.Create;
+          edificio270.LoadFromFile('edificio270.bmp');
+          image1.Canvas.Draw(x1-40,y1-40,edificio270);
+        end;
+
+      nEdificio:=nEdificio+1;
+      //guardamos en el arreglo
+      edificio[nEdificio].x1:=x1;
+      edificio[nEdificio].y1:=y1;
+      edificio[nEdificio].angulo:=strToInt(edit1.Text);
+
+    end
+  else
+    begin
+      showmessage('Ingresa un valor correcto');
+    end;
+end;
+
+procedure TForm1.Button6Click(Sender: TObject);
+begin
+  bomba:=tBitmap.Create;
+  bomba.LoadFromFile('bomba.bmp');
+  image1.Canvas.Draw(x1-40,y1-40,bomba);
+
+  nBomba:=nBomba+1;
+  //guardamos en el arreglo
+  bombaA[nBomba].x1:=x1;
+  bombaA[nBomba].y1:=y1;
+  //en los archivos vamos a identificar a las Bombas con el termino 2
+  bombaA[nBomba].angulo:=strToInt(edit1.Text);
+end;
+
+procedure TForm1.Button7Click(Sender: TObject);
+begin
+  medidor:=tBitmap.Create;
+  medidor.LoadFromFile('medidor.bmp');
+  image1.Canvas.Draw(x1-40,y1-40,medidor);
+
+  nMedidor:=nMedidor+1;
+  //guardamos en el arreglo
+  medidorA[nMedidor].x1:=x1;
+  medidorA[nMedidor].y1:=y1;
+  //en los archivos vamos a identificar a lss medidores con el termino 3
+  medidorA[nMedidor].angulo:=strToInt(edit1.Text);
+end;
+
+procedure TForm1.Button8Click(Sender: TObject);
+begin
+  llave:=tBitmap.Create;
+  llave.LoadFromFile('llave.bmp');
+  image1.Canvas.Draw(x1-40,y1-40,llave);
+
+  nLlave:=nLlave+1;
+  //guardamos en el arreglo
+  llaveA[nLlave].x1:=x1;
+  llaveA[nLlave].y1:=y1;
+  //en los archivos vamos a identificar a lss llaves con el termino 4
+  llaveA[nLlave].angulo:=strToInt(edit1.Text);
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+var
+  i: Integer;
+begin
+  edit1.Text:='0';
+  //generamos la malla de referencia de 20 pixeles
+  Image1.Canvas.pen.Color:= RGB(147,212,255);
+  for i := 1 to 100 do
+    begin
+      Image1.Canvas.MoveTo(0,i*20);
+      Image1.Canvas.LineTo(2000,i*20);
+
+      Image1.Canvas.MoveTo(i*20,0);
+      Image1.Canvas.LineTo(i*20,2000);
+    end;
+
+  //pintamos los ejes principales X y Y
+  Image1.Canvas.Pen.Width:= 7;
+  Image1.Canvas.pen.Color := clRed;
+  Image1.Canvas.MoveTo(0,0);
+  Image1.Canvas.LineTo(2000,0);
+  Image1.Canvas.pen.Color := clLime;
+  Image1.Canvas.MoveTo(0,0);
+  Image1.Canvas.LineTo(0,2000);
+  //restauramos el color y ancho de las lineas
+  Image1.Canvas.Pen.Width:= 1;
+  Image1.Canvas.pen.Color := clBlack;
+  //mostramos un letrero de X y Y
+  image1.Canvas.TextOut(23,4,'X');
+  image1.Canvas.TextOut(7,22,'Y');
+
+  nTubo:=0;
+  nManguera:=0;
+  nCasa:=0;
+  nEdificio:=0;
+  nDistribuidor:=0;
+  nBomba:=0;
+  nMedidor:=0;
+  nLlave:=0;
+end;
+
+procedure TForm1.Image1MouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  //se va hacer algebra para hubicar el punto en un multiplo de 20
+  x1:= X mod 20;
+  if x1<>0 then
+    begin
+      if x1<11 then
+        begin
+          //obtener division entera
+          x1:=X div 20;
+          x1:=x1*20;
+        end
+      else
+        begin
+          x1:=X div 20;
+          x1:=x1+1;
+          x1:=x1*20;
+        end;
+    end
+  else
+    begin
+      x1:=X;
+    end;
+
+
+  y1:= Y mod 20;
+  if y1<>0 then
+    begin
+      if y1<11 then
+        begin
+          //obtener division entera
+          y1:=Y div 20;
+          y1:=y1*20;
+        end
+      else
+        begin
+          y1:=Y div 20;
+          y1:=y1+1;
+          y1:=y1*20;
+        end;
+    end
+  else
+    begin
+      y1:=Y;
+    end;
+
+end;
+
+procedure TForm1.Image1MouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  //se va hacer algebra para hubicar el punto en un multiplo de 20
+  x2:= X mod 20;
+  if x2<>0 then
+    begin
+      if x2<11 then
+        begin
+          //obtener division entera
+          x2:=X div 20;
+          x2:=x2*20;
+        end
+      else
+        begin
+          x2:=X div 20;
+          x2:=x2+1;
+          x2:=x2*20;
+        end;
+    end
+  else
+    begin
+      x2:=X;
+    end;
+
+
+  y2:= Y mod 20;
+  if y2<>0 then
+    begin
+      if y2<11 then
+        begin
+          //obtener division entera
+          y2:=Y div 20;
+          y2:=y2*20;
+        end
+      else
+        begin
+          y2:=Y div 20;
+          y2:=y2+1;
+          y2:=y2*20;
+        end;
+    end
+  else
+    begin
+      y2:=Y;
+    end;
+end;
+
+end.
